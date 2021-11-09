@@ -55,7 +55,7 @@ public class ApplicationTracker {
     try {
       jobDateInt = Integer.valueOf(jobDate);
     } catch (Exception e) {
-      throw new IllegalArgumentException(); //TODO
+      throw new IllegalArgumentException();
     }
     
     //Make new job application
@@ -104,6 +104,14 @@ public class ApplicationTracker {
         ApplicationTracker.showName(jobName);
         System.out.println();
         break;
+      case 3:
+        System.out.println();
+        System.out.println("Enter application date");
+        String date = scnr.nextLine();
+        date = scnr.nextLine();
+        ApplicationTracker.showDate(date);
+        System.out.println();
+        break;
     }
   }
   
@@ -118,38 +126,7 @@ public class ApplicationTracker {
       data = stmt.executeQuery(sql);
       //Parses through the result set returned by the query
       while(data.next()) {
-        String output = "";
-        for(int i = 0; i < labels.length; i++) {
-          //Removes website for clear output
-          if(labels[i].equals("Website")) {
-            continue;
-          }
-          //Parses the date data and formats it
-          else if (labels[i].equals("Date")) {
-            output += data.getString(labels[i]).substring(0, 2);
-            output += "/";
-            output += data.getString(labels[i]).substring(2, 4);
-            output += "/";
-            output += data.getString(labels[i]).substring(4);
-          }
-          //Outputs current status of the job application
-          else if (labels[i].equals("Rejected")) {
-            if(data.getBoolean(labels[i])) {
-              output += "Rejected";
-            }
-            else {
-              output += "Outstanding";
-            }
-          }
-          //Adds all data without special requirements
-          else {
-            output += data.getString(labels[i]);
-          }
-          //Fenceposting for proper formatting
-          if(i != labels.length - 1) {
-            output += ",  ";
-          }
-        }
+        String output = generateOutput(data, labels);
         System.out.println(output);
       } 
     } catch (Exception ex) {
@@ -166,39 +143,94 @@ public class ApplicationTracker {
     //SQL code to be used
     String sql = "SELECT * FROM applications WHERE JobTitle = '" + jobTitle + "'";
     ResultSet data;
-    boolean found = false;
     try {
       data = stmt.executeQuery(sql);
       while(data.next()) {
-        String output = "";
-        //Formats output into a string
         if(data.getString("JobTitle").equals(jobTitle)) {
-          found = true;
-          output += data.getString("JobTitle") + ", ";
-          output += data.getString("Date").substring(0, 2);
-          output += "/";
-          output += data.getString("Date").substring(2, 4);
-          output += "/";
-          output += data.getString("Date").substring(4) + ", ";
-          output += data.getString("Location") + ", ";
-          if(data.getBoolean("Rejected") == false) {
-            output += "Outstanding";
-          }
-          else {
-            output += "Rejected";
-          }
-        }
-        //If found, output the job info, otherwise output error
-        if(found) {
+          String output = 
+              generateOutput(data, new String[] {"JobTitle", "Date", "Location", "Rejected"});
           System.out.println(output);
         }
         else {
           System.out.println("Job name couldn't be found");
         }
       }
+    } catch (Exception ex) {
+      ex.printStackTrace();
+    }
+  }
+  
+  /**
+   * Shows details of specific jobs based on date applied
+   * 
+   * @param date - applied to date of jobs to be found
+   */
+  private static void showDate(String date) {
+    //SQL code to be used
+    String sql = "SELECT * FROM applications WHERE Date = '" + date + "'";
+    ResultSet data;
+    try {
+      data = stmt.executeQuery(sql);
+      while(data.next()) {
+        //Formats output into a string
+        if(data.getString("Date").equals(date)) {
+          String output = 
+              generateOutput(data, new String[] {"JobTitle", "Date", "Location", "Rejected"});
+          System.out.println(output);
+        }
+        else {
+          System.out.println("Job application date couldn't be found");
+        }
+      }
       
     } catch (Exception ex) {
       ex.printStackTrace();
+    }
+  }
+  
+  /**
+   * Formats the output into a single string with specific data chosen
+   * Displays different data based on which SQL database labels are selected
+   * 
+   * @param data - ResultSet containing the value returned by the sql query
+   * @param labels - Labels in the database for which the data is required
+   * @return String with formatted output of data
+   */
+  private static String generateOutput(ResultSet data, String[] labels) {
+    try {
+      String output = "";
+      //Formats output into a string
+      for(int i = 0; i < labels.length; i++) {
+        //Parses the date data and formats it
+        if (labels[i].equals("Date")) {
+          output += data.getString(labels[i]).substring(0, 2);
+          output += "/";
+          output += data.getString(labels[i]).substring(2, 4);
+          output += "/";
+          output += data.getString(labels[i]).substring(4);
+        }
+        //Outputs current status of the job application
+        else if (labels[i].equals("Rejected")) {
+          if(data.getBoolean(labels[i])) {
+            output += "Rejected";
+          }
+          else {
+            output += "Outstanding";
+          }
+        }
+        //Adds all data without special requirements
+        else {
+          output += data.getString(labels[i]);
+        }
+        //Fenceposting for proper formatting
+        if(i != labels.length - 1) {
+          output += ",  ";
+        }
+      }
+      return output;
+    } catch(SQLException excpt) {
+      excpt.printStackTrace();
+      return "Error occurred handling exception";
     }
   }
 }
